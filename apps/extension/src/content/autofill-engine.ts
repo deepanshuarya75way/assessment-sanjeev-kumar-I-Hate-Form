@@ -6,6 +6,7 @@ import { detectFieldValidationWarnings } from "./warning-detector";
 import { findBestOptionMatch } from "./dropdown-matcher";
 import { locateElement } from "./element-locator";
 import { verifyAndCorrectFieldAnswers } from "./field-mapper";
+import { runFillQueue, QueuedField, QueuedFieldType } from "./fill-queue";
 
 export { locateElement };
 
@@ -15,6 +16,12 @@ export interface AutofillFieldCorrection {
   previousValue: string | boolean;
   correctedValue: string | boolean;
   warningMessage: string;
+}
+
+export interface AutofillOptions {
+  showCursor?: boolean;
+  sessionId?: string;
+  interFieldDelayMs?: number;
 }
 
 export interface AutofillResult {
@@ -27,12 +34,22 @@ export interface AutofillResult {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function inferQueuedFieldType(el: HTMLElement, desc: FieldDescriptor): QueuedFieldType {
+  if (el instanceof HTMLSelectElement || desc.type === "select") return "select";
+  if (el.getAttribute("role") === "combobox" || el.getAttribute("role") === "listbox") return "custom-dropdown";
+  if (desc.type === "radio" || (el instanceof HTMLInputElement && el.type === "radio")) return "radio";
+  if (desc.type === "checkbox" || (el instanceof HTMLInputElement && el.type === "checkbox")) return "checkbox";
+  if (desc.type === "date" || (el instanceof HTMLInputElement && el.type === "date")) return "date";
+  return "text";
+}
+
 export async function executeAutofill(
   fields: FieldDescriptor[],
   mappings: FieldMapping[],
   profile: UserProfile | null = null,
   savedResume?: SavedResumeDoc | null,
-  allDocuments?: SavedResumeDoc[] | null
+  allDocuments?: SavedResumeDoc[] | null,
+  options?: AutofillOptions
 ): Promise<AutofillResult> {
   const result: AutofillResult = {
     filledFieldIds: [],
@@ -113,7 +130,9 @@ export async function executeAutofill(
   const filledValuesMap = new Map<string, string | boolean>();
   const filledElements = new Set<HTMLElement>();
 
-  // First pass: fill fields
+  // Collect eligible fields to fill
+  const eligibleItems: Array<{ fieldDescriptor: FieldDescriptor; mapping: FieldMapping; element: HTMLElement }> = [];
+
   for (const mapping of prioritizedMappings) {
     const fieldDescriptor = fields.find((f) => f.id === mapping.fieldId);
     if (!fieldDescriptor) {
@@ -142,30 +161,71 @@ export async function executeAutofill(
     }
 
     if (filledElements.has(targetElement)) {
-      // Element was already populated by a preceding field mapping in this run
       continue;
     }
 
-    const dispatchResult = setNativeValue(targetElement, mapping.valueToFill as string | boolean);
+    eligibleItems.push({ fieldDescriptor, mapping, element: targetElement });
+  }
 
-    if (dispatchResult.success && dispatchResult.valueRegistered) {
-      filledElements.add(targetElement);
-      result.filledFieldIds.push(mapping.fieldId);
-      filledValuesMap.set(mapping.fieldId, mapping.valueToFill as string | boolean);
-    } else {
-      if (targetElement instanceof HTMLSelectElement) {
-        // Queue for multi-stage retry
-        pendingSelectRetries.push({ fieldDescriptor, mapping });
+  // Sort eligible fields by DOM position (document order / tabIndex) per §6.2
+  eligibleItems.sort((a, b) => {
+    if (a.element === b.element) return 0;
+    const tabA = a.element.tabIndex > 0 ? a.element.tabIndex : 999999;
+    const tabB = b.element.tabIndex > 0 ? b.element.tabIndex : 999999;
+    if (tabA !== tabB && tabA !== 999999 && tabB !== 999999) {
+      return tabA - tabB;
+    }
+    const pos = a.element.compareDocumentPosition(b.element);
+    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+    return 0;
+  });
+
+  // Build sequential fill queue
+  const fillQueue: QueuedField[] = eligibleItems.map((item) => ({
+    frameId: item.fieldDescriptor.frameId || 0,
+    domSelectorHash: item.fieldDescriptor.domSelectorHash || item.fieldDescriptor.id,
+    element: item.element,
+    profilePath: item.mapping.profilePath || "",
+    value: String(item.mapping.valueToFill),
+    fieldType: inferQueuedFieldType(item.element, item.fieldDescriptor),
+  }));
+
+  // Execute sequential fill with per-field verification (§6.3, §6.4)
+  const queueResults = await runFillQueue(fillQueue, {
+    showCursor: options?.showCursor ?? true,
+    sessionId: options?.sessionId,
+    interFieldDelayMs: options?.interFieldDelayMs ?? 10,
+  });
+
+  for (let i = 0; i < queueResults.length; i++) {
+    const qRes = queueResults[i];
+    const item = eligibleItems[i];
+    if (!item) continue;
+
+    if (qRes.status === "filled") {
+      filledElements.add(item.element);
+      result.filledFieldIds.push(item.mapping.fieldId);
+      filledValuesMap.set(item.mapping.fieldId, item.mapping.valueToFill as string | boolean);
+    } else if (qRes.status === "review") {
+      if (item.element instanceof HTMLSelectElement) {
+        // Queue for multi-stage retry if options load asynchronously
+        pendingSelectRetries.push({ fieldDescriptor: item.fieldDescriptor, mapping: item.mapping });
       } else {
         result.errors.push({
-          fieldId: mapping.fieldId,
-          errorCode: dispatchResult.errorCode || "FRAMEWORK_BLOCKED",
-          message:
-            dispatchResult.errorCode === "CSP_BLOCKED"
-              ? "Content Security Policy blocked synthetic event dispatch"
-              : "Framework synthetic state rejected programmatic input; manual review required",
+          fieldId: item.mapping.fieldId,
+          errorCode: "VALIDATION_FAILED",
+          message: "Field failed verification after attempts; flagged for review",
         });
       }
+    } else if (qRes.status === "skipped") {
+      result.skippedFieldIds.push(item.mapping.fieldId);
+    } else {
+      result.errors.push({
+        fieldId: item.mapping.fieldId,
+        errorCode: "FRAMEWORK_BLOCKED",
+        message: "Framework synthetic state rejected programmatic input; manual review required",
+      });
     }
   }
 

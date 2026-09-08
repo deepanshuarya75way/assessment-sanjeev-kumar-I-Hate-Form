@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sequential Custom Dropdown Fixture (§13, §16)</title>
+  <style>
+    .custom-select {
+      position: relative;
+      width: 260px;
+      user-select: none;
+    }
+    .custom-select-trigger {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #fff;
+    }
+    .custom-options {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      border: 1px solid #ccc;
+      background: #fff;
+      z-index: 10;
+    }
+    .custom-options.open {
+      display: block;
+    }
+    .custom-option {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .custom-option:hover, .custom-option.selected {
+      background: #eef2ff;
+    }
+  </style>
+</head>
+<body>
+  <form id="custom-dropdown-form">
+    <label id="lbl-experience">Years of Professional Experience</label>
+    <div
+      id="experience-dropdown"
+      class="custom-select"
+      role="combobox"
+      aria-labelledby="lbl-experience"
+      aria-expanded="false"
+      tabindex="0"
+      data-ihateform-hash="hash_exp_dropdown"
+    >
+      <div class="custom-select-trigger" id="exp-display">Select Experience</div>
+      <div class="custom-options" id="exp-options" role="listbox">
+        <div class="custom-option" role="option" data-value="0-1" aria-selected="false">0 - 1 years</div>
+        <div class="custom-option" role="option" data-value="1-3" aria-selected="false">1 - 3 years</div>
+        <div class="custom-option" role="option" data-value="3-5" aria-selected="false">3 - 5 years</div>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    (function() {
+      const dropdown = document.getElementById("experience-dropdown");
+      const display = document.getElementById("exp-display");
+      const optionsContainer = document.getElementById("exp-options");
+      const options = optionsContainer.querySelectorAll(".custom-option");
+
+      let hasReceivedPointerDown = false;
+      let hasReceivedMouseDown = false;
+      let hasReceivedClick = false;
+
+      // Requires realistic pointer sequence to activate
+      dropdown.addEventListener("pointerdown", function() {
+        hasReceivedPointerDown = true;
+      });
+
+      dropdown.addEventListener("mousedown", function() {
+        hasReceivedMouseDown = true;
+      });
+
+      dropdown.addEventListener("click", function() {
+        if (hasReceivedPointerDown && hasReceivedMouseDown) {
+          hasReceivedClick = true;
+          optionsContainer.classList.toggle("open");
+          dropdown.setAttribute("aria-expanded", optionsContainer.classList.contains("open") ? "true" : "false");
+        }
+      });
+
+      options.forEach(function(opt) {
+        opt.addEventListener("click", function(e) {
+          if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+          }
+          options.forEach(o => {
+            o.classList.remove("selected");
+            o.setAttribute("aria-selected", "false");
+          });
+          opt.classList.add("selected");
+          opt.setAttribute("aria-selected", "true");
+          display.textContent = opt.textContent;
+          dropdown.setAttribute("data-value", opt.getAttribute("data-value"));
+          optionsContainer.classList.remove("open");
+          dropdown.setAttribute("aria-expanded", "false");
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

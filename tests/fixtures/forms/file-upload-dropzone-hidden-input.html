@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dropzone With Visually Hidden File Input</title>
+  <style>
+    .visually-hidden {
+      display: none;
+    }
+    .dropzone-box {
+      border: 2px dashed #0284c7;
+      padding: 24px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <form id="ats-styled-form">
+    <div class="field-container">
+      <span class="label">Upload your Resume/CV</span>
+      <div class="dropzone-box" role="button" aria-controls="hidden-resume-input" onclick="document.getElementById('hidden-resume-input').click()">
+        <span>Drag &amp; drop or click to upload resume</span>
+      </div>
+      <input type="file" id="hidden-resume-input" class="visually-hidden" name="resume" accept=".pdf,.docx" />
+    </div>
+  </form>
+</body>
+</html>

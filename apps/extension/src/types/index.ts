@@ -21,6 +21,8 @@ export interface ScanResultPayload {
 
 export interface FillFieldsPayload {
   mappings: FieldMapping[];
+  showCursor?: boolean;
+  sessionId?: string;
 }
 
 export interface FillResultPayload {

@@ -118,3 +118,14 @@ export interface UserProfile {
   achievements?: string[];
   certifications?: string[];
 }
+
+export interface UserPreference {
+  id?: string;
+  userId: string;
+  autofillConfidenceThreshold: number;
+  preferredResumeId?: string | null;
+  notificationSettings?: any;
+  showFillCursor: boolean;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}

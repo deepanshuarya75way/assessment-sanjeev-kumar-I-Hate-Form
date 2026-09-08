@@ -1,0 +1,24 @@
+Sanjeev Kumar
+Email: sanjeev1803t@gmail.com | Phone: +91-8825171882 | Location: Greater Noida, Uttar Pradesh, India
+LinkedIn: https://linkedin.com/in/sanjeev-kumar | GitHub: https://github.com/sanjeevp-07
+
+EDUCATION
+Bennett University, Greater Noida, India
+Bachelor of Technology in Computer Science & Engineering | Expected: May 2026
+CGPA: 8.7/10.0
+Relevant Coursework: Data Structures & Algorithms, Object-Oriented Design, Operating Systems, Database Management Systems.
+
+TECHNICAL SKILLS
+Languages: TypeScript, JavaScript, Python, C++, SQL, HTML5, CSS3
+Frameworks & Libraries: React, Next.js, Node.js, Express, TailwindCSS, Vitest
+Tools & Platforms: Git, GitHub, Docker, Postman, Linux, Vite
+
+PROJECTS
+I Hate Form — AI Application Autofill Copilot (2024)
+- Built high-speed Chrome MV3 extension and Next.js full-stack platform using TypeScript and React.
+- Pierced open Shadow DOM and handled iframe boundaries to scan complex multi-step ATS application forms.
+- Implemented robust synthetic event dispatching bypassing React/Vue state-tracking barriers.
+
+Cloud-Native Task Orchestration Engine (2023)
+- Designed microservices architecture with Node.js and PostgreSQL.
+- Handled job scheduling with distributed queues and Redis caching.

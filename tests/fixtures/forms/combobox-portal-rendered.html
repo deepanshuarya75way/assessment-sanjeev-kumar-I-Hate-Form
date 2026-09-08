@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Portal Rendered Combobox</title>
+</head>
+<body>
+  <div class="application-container">
+    <div class="field-wrapper">
+      <label id="degree-label" for="degree-combobox">Degree Level</label>
+      <div class="react-select-container">
+        <input
+          id="degree-combobox"
+          role="combobox"
+          aria-labelledby="degree-label"
+          aria-expanded="false"
+          aria-controls="portal-degree-listbox"
+          placeholder="Select degree..."
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Portal mounted directly in document.body outside widget subtree -->
+  <div id="portal-degree-listbox" role="listbox" aria-labelledby="degree-label" class="select__menu">
+    <div role="option" data-value="bachelor" class="select__option">Bachelor's Degree</div>
+    <div role="option" data-value="master" class="select__option">Master's Degree</div>
+    <div role="option" data-value="phd" class="select__option">Ph.D. / Doctorate</div>
+    <div role="option" data-value="associate" class="select__option">Associate Degree</div>
+    <div role="option" data-value="other" class="select__option">Other / High School</div>
+  </div>
+</body>
+</html>

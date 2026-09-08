@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sequential Dynamic Reflow Fixture (§13, §16)</title>
+</head>
+<body>
+  <form id="dynamic-form">
+    <div id="step-1-container">
+      <label for="step1-input">Applicant Name</label>
+      <input type="text" id="step1-input" name="applicantName" data-ihateform-hash="hash_name" />
+    </div>
+    <div id="step-2-container">
+      <label for="step2-input">Phone Number</label>
+      <input type="tel" id="step2-input" name="phoneNumber" data-ihateform-hash="hash_phone" />
+    </div>
+  </form>
+
+  <script>
+    (function() {
+      const nameInput = document.getElementById("step1-input");
+      const step2Container = document.getElementById("step-2-container");
+
+      // When step 1 is filled, the form framework simulates a dynamic re-render / reflow
+      nameInput.addEventListener("change", function() {
+        // Replace step 2 container node to simulate framework reflow mid-queue
+        step2Container.innerHTML = `
+          <div class="dynamic-wrapper">
+            <label for="step2-input">Phone Number</label>
+            <input type="tel" id="step2-input" name="phoneNumber" data-ihateform-hash="hash_phone" />
+          </div>
+        `;
+      });
+    })();
+  </script>
+</body>
+</html>

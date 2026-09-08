@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sequential Debounced Validation Fixture (§13, §16)</title>
+</head>
+<body>
+  <form id="debounced-form">
+    <div>
+      <label for="work-email">Work Email</label>
+      <input type="email" id="work-email" name="workEmail" data-ihateform-hash="hash_work_email" />
+      <div id="email-status" class="status-msg"></div>
+    </div>
+  </form>
+
+  <script>
+    (function() {
+      const emailInput = document.getElementById("work-email");
+      const status = document.getElementById("email-status");
+      let debounceTimer = null;
+
+      // Simulate 300ms async debounced validation triggered on blur
+      emailInput.addEventListener("blur", function() {
+        status.textContent = "validating...";
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+          if (emailInput.value && emailInput.value.includes("@")) {
+            status.textContent = "VALID";
+            emailInput.setAttribute("data-validated", "true");
+          } else {
+            status.textContent = "INVALID";
+            emailInput.setAttribute("data-validated", "false");
+          }
+        }, 300);
+      });
+    })();
+  </script>
+</body>
+</html>

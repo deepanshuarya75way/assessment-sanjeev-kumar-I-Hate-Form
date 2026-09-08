@@ -1,0 +1,19 @@
+Alex Rivera
+Email: alex.rivera@example.com | Phone: +1 (555) 234-5678 | Location: Seattle, WA, USA
+LinkedIn: https://linkedin.com/in/alex-rivera-dev | Portfolio: https://alexrivera.dev
+
+PROFESSIONAL EXPERIENCE
+Software Development Engineer Intern — CloudScale Technologies (June 2023 - August 2023)
+- Optimized distributed database query latency by 22% using Redis cache tiers.
+- Integrated automated end-to-end testing in CI/CD pipeline using GitHub Actions.
+
+Undergraduate Teaching Assistant — University of Washington (January 2024 - May 2024)
+- Mentored 60+ students in introductory data structures, memory management, and modern C++.
+
+EDUCATION
+University of Washington, Seattle, WA
+B.S. in Computer Science | Graduation: June 2025
+
+TECHNICAL EXPERTISE
+Languages: TypeScript, Go, Python, C++, Java
+Systems: Docker, Kubernetes, AWS, PostgreSQL, MongoDB, GraphQL

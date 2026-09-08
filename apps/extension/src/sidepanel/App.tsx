@@ -23,6 +23,7 @@ export const App: React.FC = () => {
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isFilling, setIsFilling] = useState<boolean>(false);
+  const [showFillCursor, setShowFillCursor] = useState<boolean>(true);
   const [closedRootsCount, setClosedRootsCount] = useState<number>(0);
   const [hasResumeField, setHasResumeField] = useState<boolean>(false);
   const [errors, setErrors] = useState<FieldError[]>([]);
@@ -588,13 +589,13 @@ export const App: React.FC = () => {
             if (chrome.scripting) {
               const execResults = await chrome.scripting.executeScript({
                 target: { tabId: tab.id, allFrames: true },
-                func: async (mappingsArg, profileArg, resumeArg, allDocsArg) => {
+                func: async (mappingsArg, profileArg, resumeArg, allDocsArg, optionsArg) => {
                   if (typeof (window as any).__IHATEFORM_AUTOFILL__ === "function") {
-                    return await (window as any).__IHATEFORM_AUTOFILL__(mappingsArg, profileArg, resumeArg, allDocsArg);
+                    return await (window as any).__IHATEFORM_AUTOFILL__(mappingsArg, profileArg, resumeArg, allDocsArg, optionsArg);
                   }
                   return null;
                 },
-                args: [enrichedMappings, userProfile, savedResume, allUserDocs],
+                args: [enrichedMappings, userProfile, savedResume, allUserDocs, { showCursor: showFillCursor }],
               });
 
               if (execResults && execResults.length > 0) {
@@ -867,6 +868,20 @@ export const App: React.FC = () => {
           <Play className={`w-3.5 h-3.5 ${isFilling ? "animate-spin" : "fill-current"}`} />
           <span>{isFilling ? "Autofilling..." : "Autofill Valid"}</span>
         </button>
+      </div>
+
+      {/* Animated Cursor Toggle (§6.6) */}
+      <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-slate-600">
+        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showFillCursor}
+            onChange={(e) => setShowFillCursor(e.target.checked)}
+            className="w-3.5 h-3.5 rounded text-[#0066FF] border-slate-300 focus:ring-[#0066FF] cursor-pointer"
+          />
+          <span className="font-medium text-slate-700">Animated Typing Cursor</span>
+        </label>
+        <span className="text-[10px] text-slate-400">Cosmetic</span>
       </div>
 
       {/* NVIDIA NIM AI Generate Answers Button */}

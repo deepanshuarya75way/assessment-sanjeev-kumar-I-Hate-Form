@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cursor Overlay Parity Fixture (§6.6, §13)</title>
+</head>
+<body>
+  <form id="parity-form">
+    <div>
+      <label for="parity-name">Full Name</label>
+      <input type="text" id="parity-name" name="name" data-ihateform-hash="hash_p_name" />
+    </div>
+    <div>
+      <label for="parity-email">Email Address</label>
+      <input type="email" id="parity-email" name="email" data-ihateform-hash="hash_p_email" />
+    </div>
+    <div>
+      <label for="parity-role">Preferred Role</label>
+      <select id="parity-role" name="role" data-ihateform-hash="hash_p_role">
+        <option value="">Choose role</option>
+        <option value="frontend">Frontend Engineer</option>
+        <option value="backend">Backend Engineer</option>
+        <option value="fullstack">Fullstack Engineer</option>
+      </select>
+    </div>
+    <div>
+      <label>
+        <input type="checkbox" id="parity-agree" name="agree" data-ihateform-hash="hash_p_agree" />
+        I confirm all information is correct
+      </label>
+    </div>
+  </form>
+</body>
+</html>

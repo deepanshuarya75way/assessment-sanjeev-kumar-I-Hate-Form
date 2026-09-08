@@ -65,3 +65,29 @@ export interface FieldError {
   errorCode: "FRAMEWORK_BLOCKED" | "CSP_BLOCKED" | "ELEMENT_NOT_FOUND" | "TYPE_MISMATCH" | "VALIDATION_FAILED";
   message: string;
 }
+
+export type QueuedFieldType = "text" | "select" | "custom-dropdown" | "checkbox" | "radio" | "date";
+
+export interface QueuedField {
+  frameId: number;
+  domSelectorHash: string;
+  element: HTMLElement; // resolved at dequeue time, not held long-term
+  profilePath: string;
+  value: string;
+  fieldType: QueuedFieldType;
+}
+
+export type FillStatus = "filled" | "review" | "skipped" | "failed";
+
+export interface FillResult {
+  fieldId: string;
+  status: FillStatus;
+  attempts: number;
+}
+
+export interface FillProgress {
+  sessionId: string;
+  queueOrder: string[]; // domSelectorHash[], committed order
+  results: FillResult[]; // appended after every field, not batched
+  currentIndex: number;
+}

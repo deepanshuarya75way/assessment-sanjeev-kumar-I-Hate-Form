@@ -33,9 +33,9 @@ import { ExtensionMessage, FillFieldsPayload, FillResultPayload, ScanResultPaylo
     };
   };
 
-  (window as any).__IHATEFORM_AUTOFILL__ = async (mappings: any[], profile: any, savedResume: any, allDocuments: any) => {
+  (window as any).__IHATEFORM_AUTOFILL__ = async (mappings: any[], profile: any, savedResume: any, allDocuments: any, options?: any) => {
     const scanStats = scanFormFieldsWithStats();
-    return await executeAutofill(scanStats.fields, mappings, profile || null, savedResume || null, allDocuments || null);
+    return await executeAutofill(scanStats.fields, mappings, profile || null, savedResume || null, allDocuments || null, options);
   };
 
   // Listen for messages from background worker / sidepanel
@@ -66,14 +66,15 @@ import { ExtensionMessage, FillFieldsPayload, FillResultPayload, ScanResultPaylo
     if (message.type === "FILL_FIELDS") {
       (async () => {
         try {
-          const payload = message.payload as FillFieldsPayload & { profile?: any; savedResume?: any; allDocuments?: any };
+          const payload = message.payload as FillFieldsPayload & { profile?: any; savedResume?: any; allDocuments?: any; showCursor?: boolean; sessionId?: string };
           const scanStats = scanFormFieldsWithStats();
           const autofillResult = await executeAutofill(
             scanStats.fields,
             payload.mappings,
             payload.profile || null,
             payload.savedResume || null,
-            payload.allDocuments || null
+            payload.allDocuments || null,
+            { showCursor: payload.showCursor, sessionId: payload.sessionId }
           );
 
           const resultPayload: FillResultPayload & { resumeUpload?: any; corrections?: any } = {

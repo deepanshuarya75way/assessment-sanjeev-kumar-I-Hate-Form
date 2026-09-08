@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Checkbox Group vs Standalone Checkbox</title>
+</head>
+<body>
+  <form id="preferences-form">
+    <!-- Multi-option Checkbox Group -->
+    <fieldset id="work-arrangements">
+      <legend>Which work arrangements are you open to?</legend>
+      <div>
+        <input type="checkbox" id="arr-remote" name="workArrangements" value="remote">
+        <label for="arr-remote">Remote</label>
+      </div>
+      <div>
+        <input type="checkbox" id="arr-hybrid" name="workArrangements" value="hybrid">
+        <label for="arr-hybrid">Hybrid</label>
+      </div>
+      <div>
+        <input type="checkbox" id="arr-onsite" name="workArrangements" value="onsite">
+        <label for="arr-onsite">On-site</label>
+      </div>
+    </fieldset>
+
+    <!-- Standalone Single Checkbox (Must remain a single boolean field, not a group) -->
+    <div class="terms-container">
+      <input type="checkbox" id="terms-agreement" name="termsAgreed">
+      <label for="terms-agreement">I agree to the terms and privacy policy</label>
+    </div>
+  </form>
+</body>
+</html>

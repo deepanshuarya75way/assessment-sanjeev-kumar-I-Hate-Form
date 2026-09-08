@@ -231,6 +231,7 @@ model UserPreference {
   autofillConfidenceThreshold Float    @default(0.95)
   preferredResumeId           String?
   notificationSettings        Json?
+  showFillCursor              Boolean  @default(true)
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
 }
