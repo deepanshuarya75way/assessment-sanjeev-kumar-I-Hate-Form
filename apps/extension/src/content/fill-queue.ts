@@ -1,5 +1,5 @@
 import { QueuedField, QueuedFieldType, FillResult, FillProgress } from "@internship-copilot/types";
-import { setNativeValue } from "./event-dispatcher";
+import { setNativeValue, applyGoogleFormsState } from "./event-dispatcher";
 import { animateCursorTo } from "./cursor-overlay";
 import { persistFillProgress, getFillProgress } from "../storage/chrome-storage";
 
@@ -367,6 +367,9 @@ export async function fillOneField(
 
   // Step 6: Dispatch blur
   dispatchBlur(el);
+
+  // Post-blur Google Forms state cleanup (prevents blur validation from re-adding red error styles)
+  applyGoogleFormsState(el, field.value);
 
   // Step 7: Type-aware verification readback (400ms settle)
   const verified = await verifyFieldValue(el, field.value, field.fieldType, { timeoutMs: 400 });

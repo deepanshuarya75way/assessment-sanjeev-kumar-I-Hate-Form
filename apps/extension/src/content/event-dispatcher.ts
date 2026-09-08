@@ -30,8 +30,19 @@ export function injectGoogleFormsHelperStyles() {
         }
         .CDNmEc .RBEWZc,
         .CDNmEc div[jsname="ty0drd"],
-        .CDNmEc [role="alert"] {
+        .CDNmEc [role="alert"],
+        .CDNmEc .LXRPh {
           display: none !important;
+        }
+        .CDNmEc.T2vT6b,
+        .CDNmEc .T2vT6b,
+        .CDNmEc.Qr7Oae,
+        .CDNmEc .Qr7Oae {
+          border-color: transparent !important;
+        }
+        .CDNmEc .whsOnd,
+        .CDNmEc .KHxj8b {
+          border-bottom-color: #7248b9 !important;
         }
       `;
       try {
@@ -74,6 +85,14 @@ export function applyGoogleFormsState(element: HTMLElement, expectedValue: strin
       ) || element.parentElement;
 
     if (questionCard) {
+      questionCard.classList.remove("T2vT6b", "has-error", "is-invalid", "N0PJr");
+      questionCard.classList.add("CDNmEc", "k3XOCb");
+      const errNodes = questionCard.querySelectorAll(".T2vT6b, .has-error, .is-invalid, .N0PJr");
+      errNodes.forEach((n) => {
+        n.classList.remove("T2vT6b", "has-error", "is-invalid", "N0PJr");
+        n.classList.add("CDNmEc", "k3XOCb");
+      });
+
       // Target Google Forms placeholder elements
       const placeholderEls = questionCard.querySelectorAll(
         '.ndJi5d, .wGQFbe, div[class*="ndJi5d"], div[class*="placeholder"], span[class*="placeholder"], [data-placeholder]'
@@ -115,6 +134,14 @@ export function applyGoogleFormsState(element: HTMLElement, expectedValue: strin
         } catch {}
       });
     }
+
+    try {
+      element.classList.remove("T2vT6b", "is-invalid", "invalid", "error");
+      element.setAttribute("aria-invalid", "false");
+      element.setAttribute("badinput", "false");
+      element.setAttribute("data-initial-value", expectedValue);
+      element.setAttribute("data-value", expectedValue);
+    } catch {}
   } catch {}
 }
 
@@ -194,37 +221,44 @@ export function setNativeValue(
           }
         } catch {}
 
-        // Simulate user click & focus on the input element
+        // Simulate user click, focus & selection on the input element
         try {
           element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, composed: true }));
           element.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, composed: true }));
           element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true }));
           element.focus();
+          if (typeof element.select === "function") {
+            element.select();
+          }
         } catch {}
 
-        const descriptor = Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype,
-          "value"
-        );
-        if (descriptor && descriptor.set) {
-          descriptor.set.call(element, expectedValue);
-        } else {
-          element.value = expectedValue;
-        }
+        // Try document.execCommand FIRST (simulates trusted browser typing for Google Forms Wiz, React, etc.)
+        try {
+          if (typeof document !== "undefined" && typeof document.execCommand === "function") {
+            document.execCommand("selectAll", false, undefined);
+            document.execCommand("insertText", false, expectedValue);
+          }
+        } catch {}
 
-        // Try document.execCommand only if value isn't registered yet
+        // If execCommand did not set or fully set the value, apply native descriptor setter
         if (element.value !== expectedValue) {
-          try {
-            if (typeof document !== "undefined" && typeof document.execCommand === "function") {
-              element.focus();
-              document.execCommand("insertText", false, expectedValue);
-            }
-          } catch {}
+          const descriptor = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            "value"
+          );
+          if (descriptor && descriptor.set) {
+            descriptor.set.call(element, expectedValue);
+          } else {
+            element.value = expectedValue;
+          }
         }
 
         try {
           element.setAttribute("value", expectedValue);
           element.setAttribute("data-initial-value", expectedValue);
+          element.setAttribute("data-value", expectedValue);
+          element.setAttribute("aria-invalid", "false");
+          element.setAttribute("badinput", "false");
           (element as any).defaultValue = expectedValue;
         } catch {}
 
@@ -281,30 +315,37 @@ export function setNativeValue(
         element.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, composed: true }));
         element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true }));
         element.focus();
+        if (typeof element.select === "function") {
+          element.select();
+        }
       } catch {}
 
-      // Try document.execCommand to simulate real keyboard text insertion
+      // Try document.execCommand first to simulate real keyboard text insertion
       try {
         if (typeof document !== "undefined" && typeof document.execCommand === "function") {
-          element.focus();
-          element.select();
+          document.execCommand("selectAll", false, undefined);
           document.execCommand("insertText", false, expectedValue);
         }
       } catch {}
 
-      const descriptor = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype,
-        "value"
-      );
-      if (descriptor && descriptor.set) {
-        descriptor.set.call(element, expectedValue);
-      } else {
-        element.value = expectedValue;
+      if (element.value !== expectedValue) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          window.HTMLTextAreaElement.prototype,
+          "value"
+        );
+        if (descriptor && descriptor.set) {
+          descriptor.set.call(element, expectedValue);
+        } else {
+          element.value = expectedValue;
+        }
       }
 
       try {
         element.setAttribute("value", expectedValue);
         element.setAttribute("data-initial-value", expectedValue);
+        element.setAttribute("data-value", expectedValue);
+        element.setAttribute("aria-invalid", "false");
+        element.setAttribute("badinput", "false");
         (element as any).defaultValue = expectedValue;
       } catch {}
 
