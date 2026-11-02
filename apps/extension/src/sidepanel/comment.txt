@@ -1,0 +1,200 @@
+Edit 1: helper functions
+
+Find export const App: React.FC = () => {. Paste this just above that line:
+
+const isFieldRequired = (f: FieldDescriptor): boolean =>
+  Boolean(f.required) || /\*\s*$/.test(f.rawLabel || "");
+
+const isEmptyValue = (v: unknown): boolean =>
+  v === null ||
+  v === undefined ||
+  (typeof v === "string" && v.trim() === "") ||
+  (Array.isArray(v) && v.length === 0);
+
+const getMissingRequiredFields = (fields: FieldDescriptor[], mappings: FieldMapping[]): FieldDescriptor[] =>
+  fields.filter((f, i) => f.type !== "file" && isFieldRequired(f) && isEmptyValue(mappings[i]?.valueToFill));
+
+const findSavedAnswer = (profile: any, f: FieldDescriptor): string | null => {
+  const value = profile?.savedAnswers?.[f.normalizedLabel]?.value;
+  if (typeof value !== "string" || !value.trim()) return null;
+  if ((f.type === "radio" || f.type === "select") && f.options?.length) {
+    const v = value.toLowerCase();
+    if (!f.options.some((o) => o.label.toLowerCase() === v || o.value.toLowerCase() === v)) return null;
+  }
+  return value;
+};
+
+Edit 2: state, focus and save functions
+
+Find const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);. Paste this just above it:
+
+  const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
+  const [savedFieldIds, setSavedFieldIds] = useState<Set<string>>(new Set());
+
+  const focusField = async (fieldId: string) => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) return;
+      await ensureContentScriptInjected(tab.id);
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id, allFrames: true },
+        func: (id: string) => {
+          const fn = (window as any).__IHATEFORM_FOCUS_FIELD__;
+          return typeof fn === "function" ? fn(id) : null;
+        },
+        args: [fieldId],
+      });
+    } catch (err) {
+      console.warn("focusField failed:", err);
+    }
+  };
+
+  const handleSaveAnswer = async (field: FieldDescriptor, value: string) => {
+    if (!field.normalizedLabel || !value.trim()) return;
+    setSavingFieldId(field.id);
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/profile/answers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          normalizedLabel: field.normalizedLabel,
+          rawLabel: field.rawLabel,
+          value: value.trim(),
+          type: field.type,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile((prev: any) => ({ ...(prev || {}), savedAnswers: data.savedAnswers }));
+        setSavedFieldIds((prev) => new Set(prev).add(field.id));
+      }
+    } catch (err) {
+      console.warn("Save answer failed:", err);
+    } finally {
+      setSavingFieldId(null);
+    }
+  };
+
+
+Edit 3: auto-jump when there's nothing to send to the AI
+
+Find:
+
+      if (unmappedFields.length === 0) {
+        setIsGeneratingAI(false);
+        return;
+      }
+
+Replace with:
+
+      if (unmappedFields.length === 0) {
+        setIsGeneratingAI(false);
+        const missing = getMissingRequiredFields(fieldsToProcess, existingMappings);
+        if (missing.length > 0) void focusField(missing[0].id);
+        return;
+      }
+
+Edit 4: auto-jump after the AI answers
+
+Find currentMappings: finalMappings,. Just after the }); that closes that setSessionState, add:
+
+        const missingAfterAI = getMissingRequiredFields(fieldsToProcess, finalMappings);
+        if (missingAfterAI.length > 0) void focusField(missingAfterAI[0].id);
+
+Edit 5: reuse saved answers on scan
+
+Find const initialMappings: FieldMapping[] = allFields.map((f) => {. Replace that whole .map block (up to its closing });) with:
+
+          const initialMappings: FieldMapping[] = allFields.map((f) => {
+            const m = mapFieldDeterministically(f, null);
+            const realVal = resolveProfileValue(m.profilePath);
+            const saved = !m.profilePath ? findSavedAnswer(userProfile, f) : null;
+            if (saved) {
+              return {
+                ...m,
+                valueToFill: saved,
+                action: "fill" as const,
+                confidence: 0.95,
+                source: "user_override" as const,
+                reason: "Reused saved answer from profile",
+              };
+            }
+            return {
+              ...m,
+              valueToFill: realVal,
+              action: realVal ? "fill" : m.action,
+              confidence: realVal ? 0.98 : m.confidence,
+            };
+          });
+
+Edit 6: jump after autofill
+
+In handleAutofill, find // Check for Google Forms multi-page auto-progression. Paste this just above that comment:
+
+          const missingAfterFill = getMissingRequiredFields(fields, enrichedMappings);
+          if (missingAfterFill.length > 0) void focusField(missingAfterFill[0].id);
+
+On the next line, change if (allErrors.length === 0) { to:
+
+          if (allErrors.length === 0 && missingAfterFill.length === 0) {
+
+Edit 7: count variable
+
+Find const iframeFieldsCount = fields.filter((f) => f.frameId > 0).length;. Paste this below it:
+
+  const missingRequired = getMissingRequiredFields(fields, mappings);
+
+Edit 8: the banner
+
+Find {/* Summary Metrics */}. Paste this just above it:
+
+      {fields.length > 0 && missingRequired.length > 0 && (
+        <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-rose-700 font-bold">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              {missingRequired.length} required {missingRequired.length === 1 ? "field is" : "fields are"} missing answers
+            </span>
+          </div>
+          <button
+            onClick={() => focusField(missingRequired[0].id)}
+            className="text-[10px] px-2.5 py-1 bg-white text-rose-700 border border-rose-200 rounded-full font-bold cursor-pointer"
+          >
+            Go to first
+          </button>
+        </div>
+      )}
+
+Edit 9: highlight the card and add the Save button
+
+Find const isAIMapped = mapping?.source?.includes("ai");. Paste this below it:
+
+              const isMissingRequired = missingRequired.some((m) => m.id === field.id);
+              const canSave =
+                field.type !== "file" &&
+                !mapping?.profilePath &&
+                !/password/i.test(field.rawLabel || "") &&
+                valueToFill !== null &&
+                valueToFill !== undefined &&
+                String(valueToFill).trim() !== "";
+
+Then find the card's className:
+
+className="p-3 bg-white border border-slate-200 rounded-2xl text-xs transition shadow-2xs space-y-2"
+
+Replace it with:
+
+className={`p-3 bg-white border rounded-2xl text-xs transition shadow-2xs space-y-2 ${isMissingRequired ? "border-rose-300 ring-1 ring-rose-200" : "border-slate-200"}`}
+
+Finally, find {/* Text / Number Input Editable Field */}. That block ends with )}. Paste this right after that closing )}:
+
+                  {canSave && (
+                    <button
+                      onClick={() => handleSaveAnswer(field, String(valueToFill))}
+                      disabled={savingFieldId === field.id}
+                      className="text-[10px] px-2.5 py-1 bg-blue-50 text-[#0066FF] border border-blue-200 rounded-full font-bold cursor-pointer"
+                    >
+                      {savedFieldIds.has(field.id) ? "Saved ✓" : savingFieldId === field.id ? "Saving..." : "Save to profile"}
+                    </button>
+                  )}

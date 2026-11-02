@@ -7,6 +7,29 @@ import { Shield, Play, RefreshCw, Sparkles, Lock, Layers, AlertCircle, CheckCirc
 
 const BACKEND_BASE_URL = "http://localhost:3000";
 
+const isFieldRequired = (f: FieldDescriptor): boolean =>
+  Boolean(f.required) || /\*\s*$/.test(f.rawLabel || "");
+
+const isEmptyValue = (v: unknown): boolean =>
+  v === null ||
+  v === undefined ||
+  (typeof v === "string" && v.trim() === "") ||
+  (Array.isArray(v) && v.length === 0);
+
+const getMissingRequiredFields = (fields: FieldDescriptor[], mappings: FieldMapping[]): FieldDescriptor[] =>
+  fields.filter((f, i) => f.type !== "file" && isFieldRequired(f) && isEmptyValue(mappings[i]?.valueToFill));
+
+const findSavedAnswer = (profile: any, f: FieldDescriptor): string | null => {
+  const value = profile?.savedAnswers?.[f.normalizedLabel]?.value;
+  if (typeof value !== "string" || !value.trim()) return null;
+  if ((f.type === "radio" || f.type === "select") && f.options?.length) {
+    const v = value.toLowerCase();
+    if (!f.options.some((o) => o.label.toLowerCase() === v || o.value.toLowerCase() === v)) return null;
+  }
+  return value;
+};
+//sanjeevpaswan1803t@gmail.com
+
 export const App: React.FC = () => {
   const [authState, setAuthState] = useState<{
     loading: boolean;
@@ -283,6 +306,56 @@ export const App: React.FC = () => {
     }
   };
 
+
+  const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
+  const [savedFieldIds, setSavedFieldIds] = useState<Set<string>>(new Set());
+
+  const focusField = async (fieldId: string) => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) return;
+      await ensureContentScriptInjected(tab.id);
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id, allFrames: true },
+        func: (id: string) => {
+          const fn = (window as any).__IHATEFORM_FOCUS_FIELD__;
+          return typeof fn === "function" ? fn(id) : null;
+        },
+        args: [fieldId],
+      });
+    } catch (err) {
+      console.warn("focusField failed:", err);
+    }
+  };
+
+  const handleSaveAnswer = async (field: FieldDescriptor, value: string) => {
+    if (!field.normalizedLabel || !value.trim()) return;
+    setSavingFieldId(field.id);
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/profile/answers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          normalizedLabel: field.normalizedLabel,
+          rawLabel: field.rawLabel,
+          value: value.trim(),
+          type: field.type,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile((prev: any) => ({ ...(prev || {}), savedAnswers: data.savedAnswers }));
+        setSavedFieldIds((prev) => new Set(prev).add(field.id));
+      }
+    } catch (err) {
+      console.warn("Save answer failed:", err);
+    } finally {
+      setSavingFieldId(null);
+    }
+  };
+
+
   const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
 
   const handleToggleCheckboxOption = (fieldIndex: number, optionValue: string) => {
@@ -372,6 +445,8 @@ export const App: React.FC = () => {
 
       if (unmappedFields.length === 0) {
         setIsGeneratingAI(false);
+        const missing = getMissingRequiredFields(fieldsToProcess, existingMappings);
+        if (missing.length > 0) void focusField(missing[0].id);
         return;
       }
 
@@ -427,6 +502,8 @@ export const App: React.FC = () => {
         });
 
         setMappings(finalMappings);
+        const missingAfterAI = getMissingRequiredFields(fieldsToProcess, finalMappings);
+        if(missingAfterAI.length > 0)void focusField(missingAfterAI[0].id);
         await setSessionState({
           detectedFields: fieldsToProcess,
           currentMappings: finalMappings,
@@ -511,6 +588,17 @@ export const App: React.FC = () => {
           const initialMappings: FieldMapping[] = allFields.map((f) => {
             const m = mapFieldDeterministically(f, null);
             const realVal = resolveProfileValue(m.profilePath);
+            const saved = !m.profilePath ? findSavedAnswer(userProfile, f) : null;
+            if (saved) {
+              return {
+                ...m,
+                valueToFill: saved,
+                action: "fill" as const,
+                confidence: 0.95,
+                source: "user_override" as const,
+                reason: "Reused saved answer from profile",
+              };
+            }
             return {
               ...m,
               valueToFill: realVal,
@@ -546,6 +634,11 @@ export const App: React.FC = () => {
   const handleAutofill = async () => {
     setIsFilling(true);
     setErrors([]);
+
+    const missingAfterFill = getMissingRequiredFields(fields, enrichedMappings);
+    if (missingAfterFill.length > 0) void focusField(missingAfterFill[0].id);
+
+    
 
     // Update mappings with latest profile values or AI answers before autofilling
     const initialEnriched = mappings.map((m) => {
@@ -820,6 +913,8 @@ export const App: React.FC = () => {
 
   const iframeFieldsCount = fields.filter((f) => f.frameId > 0).length;
 
+  const missingRequired = getMissingRequiredFields(fields, mappings);
+
   const activeResumeDisplayName = savedResume?.filename || (userProfile?.personal
     ? `${userProfile.personal.firstName}_${userProfile.personal.lastName}_Resume.pdf`
     : "Sanjeev_Kumar_Resume.pdf");
@@ -911,6 +1006,23 @@ export const App: React.FC = () => {
               <span>{closedRootsCount} closed shadow root</span>
             </div>
           )}
+        </div>
+      )}
+
+      {fields.length > 0 && missingRequired.length > 0 && (
+        <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-rose-700 font-bold">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              {missingRequired.length} required {missingRequired.length === 1 ? "field is" : "fields are"} missing answers
+            </span>
+          </div>
+          <button
+            onClick={() => focusField(missingRequired[0].id)}
+            className="text-[10px] px-2.5 py-1 bg-white text-rose-700 border border-rose-200 rounded-full font-bold cursor-pointer"
+          >
+            Go to first
+          </button>
         </div>
       )}
 
@@ -1033,10 +1145,21 @@ export const App: React.FC = () => {
                 : resolveProfileValue(mapping?.profilePath);
               const isAIMapped = mapping?.source?.includes("ai");
 
+
+              const isMissingRequired = missingRequired.some((m) => m.id === field.id);
+              const canSave =
+                field.type !== "file" &&
+                !mapping?.profilePath &&
+                !/password/i.test(field.rawLabel || "") &&
+                valueToFill !== null &&
+                valueToFill !== undefined &&
+                String(valueToFill).trim() !== "";
+
               return (
                 <div
                   key={field.id}
-                  className="p-3 bg-white border border-slate-200 rounded-2xl text-xs transition shadow-2xs space-y-2"
+                  className={`p-3 bg-white border rounded-2xl text-xs transition shadow-2xs space-y-2 ${isMissingRequired ? "border-rose-300 ring-1 ring-rose-200" : "border-slate-200"}`}
+
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="font-bold text-slate-900 truncate flex-1 flex items-center gap-1.5">
@@ -1094,6 +1217,16 @@ export const App: React.FC = () => {
                         onChange={(e) => handleValueChange(idx, e.target.value)}
                       />
                     </div>
+                  )}
+
+                  {canSave && (
+                    <button
+                      onClick={() => handleSaveAnswer(field, String(valueToFill))}
+                      disabled={savingFieldId === field.id}
+                      className="text-[10px] px-2.5 py-1 bg-blue-50 text-[#0066FF] border border-blue-200 rounded-full font-bold cursor-pointer"
+                    >
+                      {savedFieldIds.has(field.id) ? "Saved ✓" : savingFieldId === field.id ? "Saving..." : "Save to profile"}
+                    </button>
                   )}
 
                   {/* Dropdown / Radio Options Selector */}

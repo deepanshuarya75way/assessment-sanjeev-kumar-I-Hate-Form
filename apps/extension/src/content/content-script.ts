@@ -6,6 +6,9 @@ import { FormMutationWatcher } from "./mutation-observer";
 import { injectGoogleFormsHelperStyles } from "./event-dispatcher";
 import { ExtensionMessage, FillFieldsPayload, FillResultPayload, ScanResultPayload } from "../types";
 
+import { querySelectorAllDeepWithStats } from "./shadow-dom-walker";
+
+
 // Wrap in self-invoking function and guard against duplicate injection
 (() => {
   if ((window as any).__IHATEFORM_CONTENT_SCRIPT_INITIALIZED__) {
@@ -31,6 +34,40 @@ import { ExtensionMessage, FillFieldsPayload, FillResultPayload, ScanResultPaylo
       closedShadowRootsDetected: scanStats.closedShadowRootsDetected,
       hasResumeField: hasResume,
     };
+  };
+
+
+  const HIGHLIGHT_ATTR = "data-ihateform-highlight";
+
+  const clearHighlights = () => {
+    document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach((n) => {
+      const h = n as HTMLElement;
+      h.style.outline = "";
+      h.style.outlineOffset = "";
+      h.removeAttribute(HIGHLIGHT_ATTR);
+    });
+  };
+
+  (window as any).__IHATEFORM_FOCUS_FIELD__ = (fieldId: string) => {
+    const { matchedElements } = querySelectorAllDeepWithStats(`[data-ihateform-id="${fieldId}"]`);
+    const el = matchedElements[0] as HTMLElement | undefined;
+    if (!el) return { found: false };
+
+    clearHighlights();
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.setAttribute(HIGHLIGHT_ATTR, "true");
+    el.style.outline = "3px solid #f59e0b";
+    el.style.outlineOffset = "3px";
+
+    const focusable = el.matches("input, textarea, select, [contenteditable]")
+      ? el
+      : (el.querySelector("input, textarea, select, [contenteditable='true']") as HTMLElement | null);
+    try {
+      focusable?.focus({ preventScroll: true });
+    } catch {}
+
+    el.addEventListener("input", clearHighlights, { once: true });
+    return { found: true };
   };
 
   (window as any).__IHATEFORM_AUTOFILL__ = async (mappings: any[], profile: any, savedResume: any, allDocuments: any, options?: any) => {

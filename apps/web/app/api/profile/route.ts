@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       skills: Array.isArray(skills) ? skills : [],
       links: links || {},
       documents: documents || {},
+      savedAnswers: (existingUser?.profile as any)?.saveAnswers ?? {},
     };
 
     const updatedUser = updateUserProfile(targetKey, profileToSave);

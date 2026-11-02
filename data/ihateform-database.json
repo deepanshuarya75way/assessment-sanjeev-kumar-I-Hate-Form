@@ -95,6 +95,114 @@
         }
       ],
       "applications": []
+    },
+    "usr_fnprgap": {
+      "id": "usr_fnprgap",
+      "email": "sanjeev.kumar.cs27@iilm.edu",
+      "name": "sanjeev.kumar.cs27",
+      "authProvider": "google",
+      "createdAt": "2026-11-02T07:15:30.335Z",
+      "updatedAt": "2026-11-02T07:15:30.335Z",
+      "profile": {
+        "personal": {
+          "firstName": "",
+          "lastName": "",
+          "email": "sanjeev.kumar.cs27@iilm.edu",
+          "phone": "",
+          "countryCode": "+91",
+          "city": "",
+          "state": "",
+          "country": "",
+          "postalCode": "",
+          "address": "",
+          "requiresSponsorship": false,
+          "authorizedInCountry": true
+        },
+        "links": {
+          "linkedin": "",
+          "github": "",
+          "portfolio": ""
+        }
+      },
+      "documents": [],
+      "applications": []
+    },
+    "usr_uexjzp6": {
+      "id": "usr_uexjzp6",
+      "email": "user_73616e6a6565",
+      "name": "Sanjeev Kumar",
+      "authProvider": "google",
+      "createdAt": "2026-11-02T09:10:33.721Z",
+      "updatedAt": "2026-11-02T09:10:33.722Z",
+      "profile": {
+        "personal": {
+          "fullName": "Sanjeev Kumar",
+          "firstName": "Sanjeev",
+          "middleName": "",
+          "lastName": "Kumar",
+          "email": "sanjeev1803t@gmail.com",
+          "phone": "8825171882",
+          "countryCode": "+91",
+          "gender": "Male",
+          "nationality": "Indian",
+          "dob": "06/07/2005",
+          "country": "India",
+          "state": "Uttar Pradesh",
+          "city": "Greater Noida",
+          "postalCode": "201306",
+          "address": "Lakhnawali, back of RCS School",
+          "password": "Sanjeev1100",
+          "requiresSponsorship": false,
+          "authorizedInCountry": true
+        },
+        "education": {
+          "institution": "IILM University Greater Noida ",
+          "degree": "B.Tech",
+          "major": "Computer science and Engineering ",
+          "specialization": "AI/ML",
+          "currentYear": "4",
+          "currentSemester": "7",
+          "graduationYear": "2027",
+          "cgpa": "7.89",
+          "cgpaScale": "10.0"
+        },
+        "secondary": {
+          "percentageOrCgpa": "69",
+          "passingYear": "2021",
+          "schoolName": "Kendriya Vidyalaya BHEL"
+        },
+        "higherSecondary": {
+          "percentageOrCgpa": "59.33",
+          "passingYear": "2023",
+          "schoolName": "Kendriya Vidyalaya BHEL",
+          "stream": "PCM"
+        },
+        "skills": [
+          "React",
+          "TypeScript",
+          "Node.js",
+          "JavaScript",
+          "Next.js",
+          "Tailwind CSS",
+          "Docker",
+          "MongoDB",
+          "PostgreSQL",
+          "Python",
+          "AI/ML",
+          "Git",
+          "AWS",
+          "Java",
+          "FastAPI"
+        ],
+        "links": {
+          "linkedin": "https://www.linkedin.com/in/sanjeev-kumar-1803t/",
+          "github": "https://github.com/Sanjeevp-07",
+          "portfolio": "https://port-folio-three-olive.vercel.app/"
+        },
+        "documents": {}
+      },
+      "documents": [],
+      "applications": []
     }
   },
   "version": "2.0.0"

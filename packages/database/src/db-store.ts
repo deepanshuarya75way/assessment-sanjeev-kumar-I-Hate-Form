@@ -61,6 +61,8 @@ export interface StoredProfile {
     collegeTranscriptDocId?: string;
     coverLetterDocId?: string;
   };
+
+  savedAnswers?: Record<string, {rawLabel: string; value: string; type?: string; updatedAt: string}>;
 }
 
 export interface StoredDocument {
