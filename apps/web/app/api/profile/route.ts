@@ -33,17 +33,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Personal information is required" }, { status: 400 });
     }
 
-    const targetKey = sessionUser?.id || sessionUser?.email || personal.email || "user_sanjeev";
-    const profileToSave: StoredProfile = {
-      personal: personal || {},
-      education: education || {},
-      secondary: secondary || {},
-      higherSecondary: higherSecondary || {},
-      skills: Array.isArray(skills) ? skills : [],
-      links: links || {},
-      documents: documents || {},
-      savedAnswers: (existingUser?.profile as any)?.saveAnswers ?? {},
-    };
+    const targetKey =
+  sessionUser?.id ||
+  sessionUser?.email ||
+  personal.email ||
+  "user_sanjeev";
+
+const db = readDatabase();
+
+const existingUser = db.users[targetKey] ||
+  Object.values(db.users).find(
+    (u) =>
+      u.email.toLowerCase() === String(targetKey).toLowerCase()
+  );
+
+const profileToSave: StoredProfile = {
+  personal: personal || {},
+  education: education || {},
+  secondary: secondary || {},
+  higherSecondary: higherSecondary || {},
+  skills: Array.isArray(skills) ? skills : [],
+  links: links || {},
+  documents: documents || {},
+  savedAnswers:
+    (existingUser?.profile as any)?.savedAnswers ?? {},
+};
 
     const updatedUser = updateUserProfile(targetKey, profileToSave);
 

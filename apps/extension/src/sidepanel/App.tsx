@@ -635,11 +635,6 @@ export const App: React.FC = () => {
     setIsFilling(true);
     setErrors([]);
 
-    const missingAfterFill = getMissingRequiredFields(fields, enrichedMappings);
-    if (missingAfterFill.length > 0) void focusField(missingAfterFill[0].id);
-
-    
-
     // Update mappings with latest profile values or AI answers before autofilling
     const initialEnriched = mappings.map((m) => {
       const profileVal = resolveProfileValue(m.profilePath);
@@ -664,6 +659,12 @@ export const App: React.FC = () => {
       }
       return m;
     });
+
+    const missingAfterFill = getMissingRequiredFields(fields, enrichedMappings);
+
+if (missingAfterFill.length > 0) {
+  void focusField(missingAfterFill[0].id);
+}
 
     try {
       if (typeof chrome !== "undefined" && chrome.tabs) {

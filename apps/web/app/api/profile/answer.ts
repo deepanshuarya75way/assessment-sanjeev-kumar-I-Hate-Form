@@ -53,8 +53,12 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    const update = updateUserProfile(key, {...current, savedAnswers} as StoredProfile);
-    const persisted = (updated.profile as any)?.savedAnswers;
+    const updated = updateUserProfile(
+  key,
+  { ...current, savedAnswers } as StoredProfile
+);
+
+const persisted = (updated.profile as any)?.savedAnswers;
     
     if(!persisted){
       return NextResponse.json({error: "savedAnswers was not persisted by updatedUserProfile"}, {status : 500});
